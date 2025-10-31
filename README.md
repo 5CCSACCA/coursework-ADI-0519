@@ -206,26 +206,6 @@ Checks end-to-end job creation → processing → storage.
 
 ---
 
-## Monitoring 
-
-**Prometheus metrics:**
-| Metric | Description |
-|---------|--------------|
-| `http_request_duration_seconds` | API latency |
-| `yolo_infer_ms`, `ocr_infer_ms` | Vision worker performance |
-| `graphnet_infer_ms` | Graph processing latency |
-| `bitnet_latency_ms`, `bitnet_tokens_total` | LLM usage metrics |
-| `queue_depth{queue=...}` | RabbitMQ queue backlog |
-| `errors_total{service=...}` | Error tracking |
-
-**Target SLOs:**
-- p95 latency: `< 3.0s`  
-- Error rate: `< 1%`
-
-Access Prometheus: [http://localhost:9090](http://localhost:9090)
-
----
-
 ## Security 
 
 | Category | Measure |
