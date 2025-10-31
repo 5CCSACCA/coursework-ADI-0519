@@ -30,7 +30,7 @@ This project demonstrates:
 - Generates Python/JavaScript code to recreate the chart
 - Returns code + extracted data + preview image
 
-## ⚙️ Service Responsibilities
+## Service Responsibilities
 
 | Service | Responsibility |
 |----------|----------------|
@@ -44,6 +44,17 @@ This project demonstrates:
 | **Prometheus** | Exposes metrics from all services. |
 
 ---
+
+## System Requirements
+
+- OS: Ubuntu 22.04 LTS (or Debian 12)
+- CPU/RAM: **4 vCPU / 16 GB RAM**
+- Disk: 20 GB+ free
+- Network: outbound egress to pull containers (Docker Hub) and optional Firebase
+- Packages:
+  - Docker Engine >= 24
+  - Docker Compose v2 (bundled with Docker Desktop; on server via `docker compose`)
+  - `curl`, `ufw` (optional firewall), `git`
 
 ## Quickstart (Two Command Deployment)
 
@@ -176,7 +187,7 @@ k_workers ≥ ceil( λ / (0.6 * μ) )
 
 ---
 
-## 🔬 Testing (Stage 10)
+## Testing (Stage 10)
 
 Run tests:
 ```bash
@@ -257,4 +268,5 @@ Use annotated tags for releases.
 
 ---
 
-
+**Owner:** Aditya Ranjan   
+**Project:** Chart2Code - From Diagram to production code.
