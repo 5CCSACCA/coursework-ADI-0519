@@ -10,7 +10,7 @@ ML: YOLO11n (Ultralytics) · EasyOCR · **GraphLayoutNet (Custom PyTorch CNN)** 
 
 # Overview
 
-**Chart2Code** is a Software-as-a-Service (SaaS) platform that reads **system or architecture design diagrams** (boxes, arrows, and labels) into structured graph representations, and generate starter backend **FastAPI scaffolds**.
+**Chart2Code** is a Software-as-a-Service (SaaS) platform that reads **system or architecture design diagrams** (boxes, arrows, and labels) into structured graph representations, and generate starter backend **templates**.
 The platform combines computer vision, OCR, and LLM reasoning to understand diagram layouts and produce executable backend blueprints.
 
 This project demonstrates:
@@ -22,7 +22,7 @@ This project demonstrates:
 
 # User Journey:
 
-- User uploads a chart image (line graph, bar chart, etc.)
+- User uploads an architecture diagram.
 - System detects chart elements (axes, data points, labels)
 - Extracts data values and styling information
 - Generates Python/JavaScript code to recreate the chart
@@ -30,8 +30,8 @@ This project demonstrates:
 
 ## Key Features:
 - Diagram Understanding: Detect components (boxes), connections (arrows), and labels from uploaded architecture diagrams.
-- Structured Graph Extraction: Build a machine-readable JSON representation of system components and their relationships.
-- Template Generation: Use an LLM (BitNet) to produce a short FastAPI scaffold or documentation snippet from the extracted graph.
+- Structured diagram Extraction: Build a machine-readable JSON representation of system components and their relationships.
+- Template Generation: Use an LLM (BitNet) to produce a short FastAPI scaffold or documentation snippet from the extracted diagram.
 - End-to-End Pipeline: Runs as a distributed system of Dockerised services connected via RabbitMQ.
 - Persistence and Monitoring: Results stored in PostgreSQL; Prometheus tracks latency, throughput, and queue depth.
 - Secure SaaS Deployment: Authentication and storage handled by Firebase.
@@ -42,8 +42,8 @@ This project demonstrates:
 |----------|----------------|
 | **API Gateway** | FastAPI service handling uploads, authentication, and API docs. Publishes tasks to RabbitMQ. |
 | **YOLO-OCR Worker** | Runs YOLO11n to detect boxes/arrows/text regions, performs OCR on text boxes. |
-| **GraphNet Worker** | Uses **GraphLayoutNet** (custom CNN) to infer arrow directions and builds a structured graph (nodes + edges). |
-| **BitNet Worker** | Converts the graph into FastAPI route templates and README documentation. |
+| **GraphNet Worker** | Uses **GraphLayoutNet** (custom CNN) to infer arrow directions and builds a structured diagram (nodes + edges). |
+| **BitNet Worker** | Converts the diagram into FastAPI route templates and README documentation. |
 | **PostgreSQL** | Stores project data, diagrams, graph JSON, and scaffold artifacts. |
 | **Firebase** | Handles user authentication and stores uploaded images/artifacts. |
 | **RabbitMQ** | Message broker for worker communication. |
@@ -57,9 +57,8 @@ Architecture
 3 convolutional layers + 2 fully-connected heads
 Input: 96×96 grayscale crops of detected arrows
 Output: Direction classification (4 classes)
-Optimiser: Adam, lr=3e-4, 15 epochs
-Accuracy: ~93% on synthetic validation set
 Training Data
+Trained on simple synthetic data; accuracy varies depending on arrow thickness and noise.
 Synthetic dataset of 3,200 arrow crops generated with Pillow: random angles, thickness, and noise to mimic diagrams.
 Augmented with 50 manually labelled examples from real diagrams.
 Export
@@ -184,32 +183,7 @@ curl -X POST "http://localhost:8000/projects/demo/diagrams"   -H "Authorization:
 
 ---
 
-## Cost Estimation (Stage 8)
-
-**Notation:**
-- `P_vm` = VM price per minute (4 vCPU / 16 GB)
-- `t_yolo`, `t_ocr`, `t_graph`, `t_bit` = time per step per user
-- `c_msg` = cost per RabbitMQ message
-- `F` = Firebase constant
-
-**Formula:**
-```
-C_yolo_ocr = 100 * (t_yolo + t_ocr) * P_vm
-C_graph = 100 * t_graph * P_vm
-C_bit = 100 * t_bit * P_vm
-C_queue = 100000 * c_msg * P_vm
-Total = C_yolo_ocr + C_graph + C_bit + C_queue + F
-```
-
-Scaling for 200,000 users:
-```
-k_workers ≥ ceil( λ / (0.6 * μ) )
-```
-(`λ` = request rate, `μ` = 1 / service time)
-
----
-
-## Testing (Stage 10)
+## Testing 
 
 Run tests:
 ```bash
@@ -232,7 +206,7 @@ Checks end-to-end job creation → processing → storage.
 
 ---
 
-## Monitoring (Stage 9)
+## Monitoring 
 
 **Prometheus metrics:**
 | Metric | Description |
@@ -252,7 +226,7 @@ Access Prometheus: [http://localhost:9090](http://localhost:9090)
 
 ---
 
-## Security (Stage 11)
+## Security 
 
 | Category | Measure |
 |-----------|----------|
