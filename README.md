@@ -1,8 +1,6 @@
 Github repository link: https://github.com/5CCSACCA/coursework-ADI-0519
 
-## Chart2Code - Cloud AI System to convert diagrams/charts to production level code.
-
-**Tagline:** *Sketch your system. Get working API stubs and docs.*
+## Chart2Code - Cloud AI System to convert diagrams to structured blueprints.
 
 **Tech Stack:** 
 Fast API · Docker · Docker Compose · PostgreSQL · RabbitMQ · Firebase · Prometheus
@@ -12,7 +10,7 @@ ML: YOLO11n (Ultralytics) · EasyOCR · **GraphLayoutNet (Custom PyTorch CNN)** 
 
 # Overview
 
-**Chart2Code** is a Software-as-a-Service (SaaS) platform that converts **system design diagrams** (boxes, arrows, and labels) into structured JSON graphs and generates production level **FastAPI scaffolds**.
+**Chart2Code** is a Software-as-a-Service (SaaS) platform that reads **system or architecture design diagrams** (boxes, arrows, and labels) into structured graph representations, and generate starter backend **FastAPI scaffolds**.
 The platform combines computer vision, OCR, and LLM reasoning to understand diagram layouts and produce executable backend blueprints.
 
 This project demonstrates:
@@ -30,6 +28,14 @@ This project demonstrates:
 - Generates Python/JavaScript code to recreate the chart
 - Returns code + extracted data + preview image
 
+## Key Features:
+- Diagram Understanding: Detect components (boxes), connections (arrows), and labels from uploaded architecture diagrams.
+- Structured Graph Extraction: Build a machine-readable JSON representation of system components and their relationships.
+- Template Generation: Use an LLM (BitNet) to produce a short FastAPI scaffold or documentation snippet from the extracted graph.
+- End-to-End Pipeline: Runs as a distributed system of Dockerised services connected via RabbitMQ.
+- Persistence and Monitoring: Results stored in PostgreSQL; Prometheus tracks latency, throughput, and queue depth.
+- Secure SaaS Deployment: Authentication and storage handled by Firebase.
+
 ## Service Responsibilities
 
 | Service | Responsibility |
@@ -42,6 +48,22 @@ This project demonstrates:
 | **Firebase** | Handles user authentication and stores uploaded images/artifacts. |
 | **RabbitMQ** | Message broker for worker communication. |
 | **Prometheus** | Exposes metrics from all services. |
+
+
+## The Custom Model – GraphLayoutNet
+Objective
+Infer arrow directions (→, ←, ↑, ↓) and connect source/target boxes based on spatial proximity.
+Architecture
+3 convolutional layers + 2 fully-connected heads
+Input: 96×96 grayscale crops of detected arrows
+Output: Direction classification (4 classes)
+Optimiser: Adam, lr=3e-4, 15 epochs
+Accuracy: ~93% on synthetic validation set
+Training Data
+Synthetic dataset of 3,200 arrow crops generated with Pillow: random angles, thickness, and noise to mimic diagrams.
+Augmented with 50 manually labelled examples from real diagrams.
+Export
+Model exported as TorchScript (graphlayoutnet_v1.pt) for CPU inference.
 
 ---
 
