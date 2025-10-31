@@ -1,2 +1,260 @@
-https://github.com/5CCSACCA/coursework-ADI-0519
+Github repository link: https://github.com/5CCSACCA/coursework-ADI-0519
+
+## Chart2Code - Cloud AI System to convert diagrams/charts to production level code.
+
+**Tagline:** *Sketch your system. Get working API stubs and docs.*
+
+**Tech Stack:** 
+Fast API · Docker · Docker Compose · PostgreSQL · RabbitMQ · Firebase · Prometheus
+ML: YOLO11n (Ultralytics) · EasyOCR · **GraphLayoutNet (Custom PyTorch CNN)** · Bitnet (Microsoft LLM)
+
+---
+
+# Overview
+
+**Chart2Code** is a Software-as-a-Service (SaaS) platform that converts **system design diagrams** (boxes, arrows, and labels) into structured JSON graphs and generates production level **FastAPI scaffolds**.
+The platform combines computer vision, OCR, and LLM reasoning to understand diagram layouts and produce executable backend blueprints.
+
+This project demonstrates:
+- Cloud-based AI inference on **CPU (≤ 4 vCPU / 16 GB)**,
+- **Microservice orchestration** using Docker Compose,
+- **Message-based communication** (RabbitMQ),
+- **Authentication and persistence** (Firebase + PostgreSQL),
+- **Monitoring, testing, and cost analysis** as per coursework stages.
+
+# User Journey:
+
+- User uploads a chart image (line graph, bar chart, etc.)
+- System detects chart elements (axes, data points, labels)
+- Extracts data values and styling information
+- Generates Python/JavaScript code to recreate the chart
+- Returns code + extracted data + preview image
+
+## ⚙️ Service Responsibilities
+
+| Service | Responsibility |
+|----------|----------------|
+| **API Gateway** | FastAPI service handling uploads, authentication, and API docs. Publishes tasks to RabbitMQ. |
+| **YOLO-OCR Worker** | Runs YOLO11n to detect boxes/arrows/text regions, performs OCR on text boxes. |
+| **GraphNet Worker** | Uses **GraphLayoutNet** (custom CNN) to infer arrow directions and builds a structured graph (nodes + edges). |
+| **BitNet Worker** | Converts the graph into FastAPI route templates and README documentation. |
+| **PostgreSQL** | Stores project data, diagrams, graph JSON, and scaffold artifacts. |
+| **Firebase** | Handles user authentication and stores uploaded images/artifacts. |
+| **RabbitMQ** | Message broker for worker communication. |
+| **Prometheus** | Exposes metrics from all services. |
+
+---
+
+## Quickstart (Two Command Deployment)
+
+> Tested on Ubuntu 22.04 with Docker Engine ≥ 24 and Docker Compose v2.
+
+### Build the containers
+```bash
+docker compose -f docker-compose.yml --profile prod build
+```
+
+### Run the SaaS
+```bash
+docker compose -f docker-compose.yml --profile prod up -d
+```
+
+API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)  
+RabbitMQ dashboard: [http://localhost:15672](http://localhost:15672)
+
+To stop:
+```bash
+docker compose down
+```
+
+---
+
+## Environment Configuration
+
+Create a `.env` file in the project root:
+
+```env
+APP_ENV=prod
+APP_PORT=8000
+MAX_IMAGE_MB=8
+
+POSTGRES_USER=c2c_user
+POSTGRES_PASSWORD=c2c_pass
+POSTGRES_DB=chart2code
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+
+RABBITMQ_HOST=rabbitmq
+RABBITMQ_USER=guest
+RABBITMQ_PASSWORD=guest
+
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=service-account@your-project-id.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+
+YOLO_MODEL=/models/yolo11n.pt
+GRAPHNET_CHECKPOINT=/models/graphlayoutnet_v1.pt
+BITNET_WEIGHTS=/models/bitnet
+BITNET_MAX_TOKENS=256
+
+# Optional mocks for demo
+MOCK_FIREBASE=1
+MOCK_BITNET=1
+```
+
+---
+
+## Example Input & Output
+
+### Upload a Diagram
+```bash
+curl -X POST "http://localhost:8000/projects/demo/diagrams"   -H "Authorization: Bearer demo-token"   -F "file=@samples/diagram_placeholder.jpg"
+```
+
+### Example Response
+```json
+{
+  "job_id": "4b6a0d9c",
+  "status": "done",
+  "graph": {
+    "nodes": [
+      {"node_id": "Auth", "type": "service"},
+      {"node_id": "Orders", "type": "service"}
+    ],
+    "edges": [
+      {"source": "Auth", "target": "Orders", "direction": "right", "label": "POST /login"}
+    ]
+  },
+  "scaffold": {
+    "fastapi": "from fastapi import FastAPI\napp=FastAPI()\n@app.post('/login')\nasync def login(): ...",
+    "readme": "Services: Auth → Orders"
+  },
+  "assets": {
+    "image_uri": "gs://mock-bucket/demo.jpg",
+    "graph_uri": "gs://mock-bucket/graph.json",
+    "scaffold_uri": "gs://mock-bucket/scaffold.json"
+  }
+}
+```
+
+---
+
+## Machine Learning Components
+
+| Model | Purpose | Type | Notes |
+|--------|----------|------|-------|
+| **YOLO11n** | Object detection for boxes, arrows, and text regions. | Pretrained | CPU-friendly; fine-tuning optional. |
+| **EasyOCR** | Optical character recognition for text boxes. | Pretrained | Extracts node and edge labels. |
+| **GraphLayoutNet** | Custom CNN to classify arrow directions (←, →, ↑, ↓). | **Your custom model** | Trained on synthetic arrow data (≈3k samples). |
+| **BitNet (Microsoft)** | LLM for structured code/text generation. | External | Deterministic prompt for scaffold generation. |
+
+---
+
+## Cost Estimation (Stage 8)
+
+**Notation:**
+- `P_vm` = VM price per minute (4 vCPU / 16 GB)
+- `t_yolo`, `t_ocr`, `t_graph`, `t_bit` = time per step per user
+- `c_msg` = cost per RabbitMQ message
+- `F` = Firebase constant
+
+**Formula:**
+```
+C_yolo_ocr = 100 * (t_yolo + t_ocr) * P_vm
+C_graph = 100 * t_graph * P_vm
+C_bit = 100 * t_bit * P_vm
+C_queue = 100000 * c_msg * P_vm
+Total = C_yolo_ocr + C_graph + C_bit + C_queue + F
+```
+
+Scaling for 200,000 users:
+```
+k_workers ≥ ceil( λ / (0.6 * μ) )
+```
+(`λ` = request rate, `μ` = 1 / service time)
+
+---
+
+## 🔬 Testing (Stage 10)
+
+Run tests:
+```bash
+pytest -q
+```
+
+### Unit Tests
+| Test | Description |
+|------|--------------|
+| `test_yolo_postproc.py` | Bounding box & NMS logic |
+| `test_ocr_clean.py` | OCR output sanitisation |
+| `test_graphnet_infer.py` | Arrow direction inference |
+| `test_graph_builder.py` | Graph consistency from detections |
+| `test_bitnet_prompt.py` | Prompt schema validation |
+| `test_auth_guard.py` | Firebase token checks |
+
+### Integration Tests
+Run with minimal `docker-compose.test.yml` (mock workers).  
+Checks end-to-end job creation → processing → storage.
+
+---
+
+## Monitoring (Stage 9)
+
+**Prometheus metrics:**
+| Metric | Description |
+|---------|--------------|
+| `http_request_duration_seconds` | API latency |
+| `yolo_infer_ms`, `ocr_infer_ms` | Vision worker performance |
+| `graphnet_infer_ms` | Graph processing latency |
+| `bitnet_latency_ms`, `bitnet_tokens_total` | LLM usage metrics |
+| `queue_depth{queue=...}` | RabbitMQ queue backlog |
+| `errors_total{service=...}` | Error tracking |
+
+**Target SLOs:**
+- p95 latency: `< 3.0s`  
+- Error rate: `< 1%`
+
+Access Prometheus: [http://localhost:9090](http://localhost:9090)
+
+---
+
+## Security (Stage 11)
+
+| Category | Measure |
+|-----------|----------|
+| **Auth** | Firebase ID token verification |
+| **Access Control** | Per-user data filtering |
+| **Storage** | Firebase signed URLs; no public paths |
+| **Input Validation** | File size cap (8 MB), MIME & magic-byte checks |
+| **Secrets Management** | Environment variables only (`.env` not in Git) |
+| **Network Isolation** | Private Docker network (no exposed DB/RabbitMQ) |
+| **Audit Logging** | DB audit table with timestamps and trace IDs |
+
+---
+
+## Sustainability & Limitations
+
+- **Efficiency:** Runs fully on CPU (no GPU energy cost).  
+- **Bias & Limitations:** Dependent on diagram clarity; may fail on overlapping arrows.  
+- **Privacy:** User data isolated by Firebase authentication.  
+- **Data Retention:** Auto-purge artifacts after 30 days.  
+- **Extensibility:** Supports plugin architecture for new shapes/models.
+
+---
+
+## GitFlow Development Process
+
+| Branch | Purpose |
+|---------|----------|
+| `main` | Stable release (final submission) |
+| `develop` | Integration branch |
+| `feature/*` | Individual feature development |
+| `hotfix/*` | Urgent patches post-release |
+
+PRs merge into `develop` → `main`.  
+Use annotated tags for releases.
+
+---
+
 
