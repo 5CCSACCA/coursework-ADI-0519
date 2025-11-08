@@ -1,1 +1,4 @@
 These are the extra review notes apart from the code.
+GitFlow: There is only one branch, consider using GitFlow
+Repository: The repository is empty, please add relevant files and start committing your code. I can see that the README has a significant amount of information, but it would be better to have the code in the repository as well.
+README: I like how you have organized the README, although the GraphLayoutNet description is confusing, please try to clarify it further.
