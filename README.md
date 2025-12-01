@@ -1,70 +1,46 @@
 Github repository link: https://github.com/5CCSACCA/coursework-ADI-0519
 
-## Chart2Code - Cloud AI System to convert diagrams to structured blueprints.
+# SafetyVision – Cloud-Based Workplace Hazard Detection
+**5CCSACCA – Cloud Computing for Artificial Intelligence (Coursework Project)**
 
-**Tech Stack:** 
-Fast API · Docker · Docker Compose · PostgreSQL · RabbitMQ · Firebase · Prometheus
-ML: YOLO11n (Ultralytics) · EasyOCR · **GraphLayoutNet (Custom PyTorch CNN)** · Bitnet (Microsoft LLM)
+SafetyVision is a cloud-based AI system that analyses workplace images (e.g. construction or warehouse scenes), detects common objects, identifies potential hazards, and generates short safety summaries using a lightweight language model.
+
+The project focuses on **cloud architecture**, **containerisation**, **service orchestration**, **authentication**, **monitoring**, and **AI inference on CPU**, as required by the coursework specification.
+
+---
+
+## 📌 Project Overview
+
+SafetyVision provides a simple end-to-end pipeline:
+
+1. A user uploads a workplace image.
+2. The system runs **YOLO11n** to detect people, vehicles, ladders, and tools.
+3. A small **rule-based engine** infers potential hazards (e.g., “person near vehicle”, “cluttered workspace”).
+4. **BitNet** generates a short natural-language safety summary.
+5. All results are stored in **PostgreSQL** for later retrieval.
+6. Access to the API is protected through **Firebase Authentication**.
+7. **RabbitMQ** handles asynchronous communication between detection and hazard-analysis services.
+8. **Prometheus** exposes basic monitoring metrics.
+
+All components run on **≤ 4 vCPUs and 16 GB RAM**, matching the coursework restrictions.
 
 ---
 
-# Overview
+## 🧱 High-Level Architecture
 
-**Chart2Code** is a Software-as-a-Service (SaaS) platform that reads **system or architecture design diagrams** (boxes, arrows, and labels) into structured graph representations, and generate starter backend **templates**.
-The platform combines computer vision, OCR, and LLM reasoning to understand diagram layouts and produce executable backend blueprints.
+The system is implemented as several lightweight microservices orchestrated using **Docker Compose**:
 
-This project demonstrates:
-- Cloud-based AI inference on **CPU (≤ 4 vCPU / 16 GB)**,
-- **Microservice orchestration** using Docker Compose,
-- **Message-based communication** (RabbitMQ),
-- **Authentication and persistence** (Firebase + PostgreSQL),
-- **Monitoring, testing, and cost analysis** as per coursework stages.
+| Service | Description |
+|---------|-------------|
+| **API Gateway** | FastAPI service exposed publicly. Handles file uploads, authentication, and DB access. |
+| **YOLO Service** | Performs object detection using YOLO11n and publishes results to RabbitMQ. |
+| **Safety Service** | Consumes messages, applies hazard rules, calls BitNet, and writes summaries to the DB. |
+| **PostgreSQL** | Persists requests, detections, hazards, and generated summaries. |
+| **Firebase** | Manages user authentication and optional image storage. |
+| **RabbitMQ** | Message broker connecting detection → hazard services. |
+| **Prometheus** | Collects metrics from services for monitoring. |
 
-# User Journey:
-
-- User uploads an architecture diagram.
-- System detects chart elements (axes, data points, labels)
-- Extracts data values and styling information
-- Generates Python/JavaScript code to recreate the chart
-- Returns code + extracted data + preview image
-
-## Key Features:
-- Diagram Understanding: Detect components (boxes), connections (arrows), and labels from uploaded architecture diagrams.
-- Structured diagram Extraction: Build a machine-readable JSON representation of system components and their relationships.
-- Template Generation: Use an LLM (BitNet) to produce a short FastAPI scaffold or documentation snippet from the extracted diagram.
-- End-to-End Pipeline: Runs as a distributed system of Dockerised services connected via RabbitMQ.
-- Persistence and Monitoring: Results stored in PostgreSQL; Prometheus tracks latency, throughput, and queue depth.
-- Secure SaaS Deployment: Authentication and storage handled by Firebase.
-
-## Service Responsibilities
-
-| Service | Responsibility |
-|----------|----------------|
-| **API Gateway** | FastAPI service handling uploads, authentication, and API docs. Publishes tasks to RabbitMQ. |
-| **YOLO-OCR Worker** | Runs YOLO11n to detect boxes/arrows/text regions, performs OCR on text boxes. |
-| **GraphNet Worker** | Uses **GraphLayoutNet** (custom CNN) to infer arrow directions and builds a structured diagram (nodes + edges). |
-| **BitNet Worker** | Converts the diagram into FastAPI route templates and README documentation. |
-| **PostgreSQL** | Stores project data, diagrams, graph JSON, and scaffold artifacts. |
-| **Firebase** | Handles user authentication and stores uploaded images/artifacts. |
-| **RabbitMQ** | Message broker for worker communication. |
-| **Prometheus** | Exposes metrics from all services. |
-
-
-## The Custom Model – GraphLayoutNet
-Objective
-Infer arrow directions (→, ←, ↑, ↓) and connect source/target boxes based on spatial proximity.
-Architecture
-3 convolutional layers + 2 fully-connected heads
-Input: 96×96 grayscale crops of detected arrows
-Output: Direction classification (4 classes)
-Training Data
-Trained on simple synthetic data; accuracy varies depending on arrow thickness and noise.
-Synthetic dataset of 3,200 arrow crops generated with Pillow: random angles, thickness, and noise to mimic diagrams.
-Augmented with 50 manually labelled examples from real diagrams.
-Export
-Model exported as TorchScript (graphlayoutnet_v1.pt) for CPU inference.
-
----
+All services run inside a private Docker network.
 
 ## System Requirements
 
@@ -91,86 +67,13 @@ docker compose -f docker-compose.yml --profile prod build
 docker compose -f docker-compose.yml --profile prod up -d
 ```
 
-API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)  
+API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 RabbitMQ dashboard: [http://localhost:15672](http://localhost:15672)
 
 To stop:
 ```bash
 docker compose down
 ```
-
----
-
-## Environment Configuration
-
-Create a `.env` file in the project root:
-
-```env
-APP_ENV=prod
-APP_PORT=8000
-MAX_IMAGE_MB=8
-
-POSTGRES_USER=c2c_user
-POSTGRES_PASSWORD=c2c_pass
-POSTGRES_DB=chart2code
-POSTGRES_HOST=postgres
-POSTGRES_PORT=5432
-
-RABBITMQ_HOST=rabbitmq
-RABBITMQ_USER=guest
-RABBITMQ_PASSWORD=guest
-
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_CLIENT_EMAIL=service-account@your-project-id.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
-
-YOLO_MODEL=/models/yolo11n.pt
-GRAPHNET_CHECKPOINT=/models/graphlayoutnet_v1.pt
-BITNET_WEIGHTS=/models/bitnet
-BITNET_MAX_TOKENS=256
-
-# Optional mocks for demo
-MOCK_FIREBASE=1
-MOCK_BITNET=1
-```
-
----
-
-## Example Input & Output
-
-### Upload a Diagram
-```bash
-curl -X POST "http://localhost:8000/projects/demo/diagrams"   -H "Authorization: Bearer demo-token"   -F "file=@samples/diagram_placeholder.jpg"
-```
-
-### Example Response
-```json
-{
-  "job_id": "4b6a0d9c",
-  "status": "done",
-  "graph": {
-    "nodes": [
-      {"node_id": "Auth", "type": "service"},
-      {"node_id": "Orders", "type": "service"}
-    ],
-    "edges": [
-      {"source": "Auth", "target": "Orders", "direction": "right", "label": "POST /login"}
-    ]
-  },
-  "scaffold": {
-    "fastapi": "from fastapi import FastAPI\napp=FastAPI()\n@app.post('/login')\nasync def login(): ...",
-    "readme": "Services: Auth → Orders"
-  },
-  "assets": {
-    "image_uri": "gs://mock-bucket/demo.jpg",
-    "graph_uri": "gs://mock-bucket/graph.json",
-    "scaffold_uri": "gs://mock-bucket/scaffold.json"
-  }
-}
-```
-
----
 
 ## Machine Learning Components
 
@@ -183,7 +86,7 @@ curl -X POST "http://localhost:8000/projects/demo/diagrams"   -H "Authorization:
 
 ---
 
-## Testing 
+## Testing
 
 Run tests:
 ```bash
@@ -201,12 +104,12 @@ pytest -q
 | `test_auth_guard.py` | Firebase token checks |
 
 ### Integration Tests
-Run with minimal `docker-compose.test.yml` (mock workers).  
+Run with minimal `docker-compose.test.yml` (mock workers).
 Checks end-to-end job creation → processing → storage.
 
 ---
 
-## Security 
+## Security
 
 | Category | Measure |
 |-----------|----------|
@@ -222,10 +125,10 @@ Checks end-to-end job creation → processing → storage.
 
 ## Sustainability & Limitations
 
-- **Efficiency:** Runs fully on CPU (no GPU energy cost).  
-- **Bias & Limitations:** Dependent on diagram clarity; may fail on overlapping arrows.  
-- **Privacy:** User data isolated by Firebase authentication.  
-- **Data Retention:** Auto-purge artifacts after 30 days.  
+- **Efficiency:** Runs fully on CPU (no GPU energy cost).
+- **Bias & Limitations:** Dependent on diagram clarity; may fail on overlapping arrows.
+- **Privacy:** User data isolated by Firebase authentication.
+- **Data Retention:** Auto-purge artifacts after 30 days.
 - **Extensibility:** Supports plugin architecture for new shapes/models.
 
 ---
@@ -239,10 +142,10 @@ Checks end-to-end job creation → processing → storage.
 | `feature/*` | Individual feature development |
 | `hotfix/*` | Urgent patches post-release |
 
-PRs merge into `develop` → `main`.  
+PRs merge into `develop` → `main`.
 Use annotated tags for releases.
 
 ---
 
-**Owner:** Aditya Ranjan   
+**Owner:** Aditya Ranjan
 **Project:** Chart2Code - From Diagram to production code.

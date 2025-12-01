@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic
+ultralytics
+pillow
+python-multipart
+pytest
+prometheus-client
+firebase-admin
+black
+isort
+pre-commit
+flake8

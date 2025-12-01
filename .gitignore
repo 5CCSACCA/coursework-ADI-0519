@@ -1,0 +1,10 @@
+*.log
+venv/
+__pycache__/
+outputs/
+*.pt
+*.pyc
+.env
+dist/
+build/
+.pytest_cache/
